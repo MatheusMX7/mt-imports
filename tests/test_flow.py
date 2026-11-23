@@ -1,5 +1,5 @@
 import os, uuid
-os.environ.update(DATABASE_URL="sqlite:///./test.db", JWT_SECRET="segredo-de-teste", ADMIN_EMAIL="dono@x.com", ADMIN_PASSWORD="senha-forte-1")
+os.environ.update(AUTO_SEED="0", BACKUP="0", DATABASE_URL="sqlite:///./test.db", JWT_SECRET="segredo-de-teste", ADMIN_EMAIL="dono@x.com", ADMIN_PASSWORD="senha-forte-1")
 import pytest
 from fastapi.testclient import TestClient
 from app.main import app

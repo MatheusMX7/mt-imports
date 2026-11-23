@@ -12,6 +12,8 @@ from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from .models import *
+from .seed import seed_if_empty
+from .backup import make_backup, snap, start_scheduler
 
 SECRET = os.environ["JWT_SECRET"]  # obrigatório
 STATUS = ["Aguardando confirmação", "Pedido confirmado", "Em preparação", "Saiu para entrega", "Disponível para retirada", "Concluído", "Cancelado"]
@@ -26,6 +28,11 @@ async def lifespan(app):
         if e and p and not db.scalar(select(Admin)):
             db.add(Admin(email=e.lower(), password_hash=bcrypt.hashpw(p.encode(), bcrypt.gensalt()).decode()))
         db.commit()
+        if os.getenv("AUTO_SEED", "1") != "0": print(f"Catálogo inicial: {seed_if_empty(db)} produtos importados" if not db.query(Product).count() else "Catálogo já existe no banco")
+        if os.getenv("BACKUP", "1") != "0":  # cópia ao iniciar e a cada 6 horas
+            try: print("Backup:", make_backup())
+            except Exception as e: print("Falha no backup:", e)
+            start_scheduler()
     yield
 
 app = FastAPI(title="Mateus Imports API", lifespan=lifespan)
@@ -169,7 +176,7 @@ def cat_put(id: int, b: CategoryIn, db: Session = Depends(get_db)):
     db.commit(); return row(c)
 @app.delete("/api/admin/categories/{id}", dependencies=A)
 def cat_del(id: int, force: bool = False, db: Session = Depends(get_db)):
-    c = get_or_404(db, Category, id); n = len(db.scalars(select(Product.id).where(Product.category_id == id)).all())
+    snap(); c = get_or_404(db, Category, id); n = len(db.scalars(select(Product.id).where(Product.category_id == id)).all())
     if n and not force: raise HTTPException(409, f"Há {n} produto(s) nesta categoria. Confirme para excluir (force=true).")
     db.execute(update(Product).where(Product.category_id == id).values(category_id=None)); db.delete(c); db.commit(); return {"ok": True}
 
@@ -188,7 +195,7 @@ def prod_put(id: int, b: ProductIn, db: Session = Depends(get_db)):
     p = get_or_404(db, Product, id); pfill(p, b); db.commit(); return pout(p)
 @app.delete("/api/admin/products/{id}", dependencies=A)
 def prod_del(id: int, db: Session = Depends(get_db)):
-    p = get_or_404(db, Product, id); db.execute(update(OrderItem).where(OrderItem.product_id == id).values(product_id=None)); db.delete(p); db.commit(); return {"ok": True}
+    snap(); p = get_or_404(db, Product, id); db.execute(update(OrderItem).where(OrderItem.product_id == id).values(product_id=None)); db.delete(p); db.commit(); return {"ok": True}
 
 @app.get("/api/admin/coupons", dependencies=A)
 def coupons(db: Session = Depends(get_db)): return [row(c) for c in db.scalars(select(Coupon))]

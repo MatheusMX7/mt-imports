@@ -5,7 +5,11 @@ from typing import Optional
 from sqlalchemy import event, create_engine, String, Text, Integer, Numeric, Boolean, ForeignKey, JSON, Date, DateTime
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, sessionmaker
 
+from pathlib import Path
+ROOT = Path(__file__).resolve().parent.parent
 URL = os.getenv("DATABASE_URL", "sqlite:///./mateus.db")
+if URL.startswith("sqlite:///./"):  # o arquivo fica sempre na pasta do projeto, não importa de onde o servidor é iniciado
+    URL = "sqlite:///" + (ROOT / URL[len("sqlite:///./"):]).as_posix()
 engine = create_engine(URL, pool_pre_ping=True, connect_args={"check_same_thread": False} if URL.startswith("sqlite") else {})
 SessionLocal = sessionmaker(engine, expire_on_commit=False)
 if URL.startswith("sqlite"):  # integridade referencial, escrita segura e espera em vez de erro "database is locked"

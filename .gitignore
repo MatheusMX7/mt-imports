@@ -5,5 +5,6 @@ __pycache__/
 mateus.db
 *.db-shm
 *.db-wal
+backups/
 .pytest_cache/
 .vscode/

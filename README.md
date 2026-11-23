@@ -15,11 +15,12 @@ Uma única aplicação serve tudo, com banco **SQLite** (um arquivo `mateus.db`,
    .venv\Scripts\activate        (Windows)   |   source .venv/bin/activate   (Linux/Mac)
    pip install -r requirements.txt
    ```
-3. **Importar o catálogo** (11 categorias e 93 produtos do site antigo), uma única vez: `python seed_catalogo.py`
-4. **Iniciar:** `python -m uvicorn app.main:app --host 0.0.0.0 --port 8000`
+3. **Iniciar:** `python -m uvicorn app.main:app --host 0.0.0.0 --port 8000`
    (use sempre **um único processo**; não adicione `--workers`).
+   Na primeira vez, o servidor cria o banco e **importa sozinho** as 11 categorias e 93 produtos do site antigo
+   (para desativar, coloque `AUTO_SEED=0` no `.env`). Abra a loja sempre pelo endereço do servidor, nunca clicando no arquivo `index.html`.
 
-O arquivo `mateus.db` é criado na pasta de onde você iniciou. Rode sempre a partir da pasta do projeto.
+O arquivo `mateus.db` é criado dentro da pasta do projeto, de qualquer lugar que você inicie o servidor.
 
 ## Depois de instalar
 No painel (/admin) → **Configurações**, confira WhatsApp, endereço, PIX e o valor da 99Moto.
@@ -40,3 +41,9 @@ Copie o arquivo `mateus.db` (com a aplicação parada, ou use `sqlite3 mateus.db
 - `app/models.py` tabelas · `app/main.py` API, regras de pedido e rotas do site
 - `static/index.html` loja · `static/admin.html` painel
 - `schema.sql` tabelas em SQL (referência) · `data/catalogo.json` catálogo importado
+
+## Catálogo protegido (nada some sozinho)
+- **Backups automáticos:** ao iniciar, a cada 6 horas e antes de qualquer exclusão, o servidor copia o banco para a pasta `backups/` (mantém as últimas 14). Para restaurar: pare o servidor, copie um arquivo de `backups/` por cima de `mateus.db` e inicie de novo.
+- **Importação automática:** se o banco ficar sem nenhum produto, o catálogo inicial é importado de novo ao reiniciar.
+- **Cópia na loja:** o navegador do cliente guarda a última versão do catálogo; se o servidor falhar por um instante, os produtos continuam aparecendo (com um aviso).
+- **O que esconde produtos de propósito:** status *Inativo* no produto ou na categoria. Produto sem estoque continua aparecendo, marcado como "Sem estoque".
