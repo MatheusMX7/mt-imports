@@ -8,3 +8,6 @@ mateus.db
 backups/
 .pytest_cache/
 .vscode/
+*.log
+test.db
+*.png
